@@ -13,7 +13,7 @@ Single user, mobile-first. Every daily interaction should take under 30 seconds.
 | Framework | Latest stable Next.js, App Router, TypeScript strict, React Server Components by default |
 | Styling | Tailwind CSS. No component library; a few hand-rolled primitives (Button, Segmented, Stepper, Card) |
 | Data | Supabase Postgres, `@supabase/ssr` for cookie-based auth in server components and actions |
-| Auth | Email magic link only. Public sign-ups disabled once the account exists **[DEFAULT]** |
+| Auth | Google sign-in via Supabase OAuth, locked to `ALLOWED_EMAIL`. Public sign-ups disabled once the account exists. (Replaced email magic links: custom email templates need SMTP.) |
 | Writes | Server actions only, using `revalidatePath`. No client state library |
 | Rules | Pure TypeScript in `lib/engine/`, with no I/O, no `Date.now()` and no Supabase imports. Tested with Vitest |
 | Time zone | Europe/London. All "today" and week-boundary logic goes through `lib/dates.ts` **[DEFAULT]** |
@@ -22,8 +22,8 @@ Single user, mobile-first. Every daily interaction should take under 30 seconds.
 
 ```
 app/
-  login/page.tsx                 magic link + 6-digit code (code works inside an installed PWA)
-  auth/confirm/route.ts          verifies token_hash or exchanges ?code= for a session
+  login/page.tsx                 "Continue with Google"
+  auth/confirm/route.ts          exchanges the OAuth ?code= for a session, enforces ALLOWED_EMAIL
   (app)/layout.tsx               auth guard + bottom tab bar (Today · Log · Week · Settings)
   (app)/today/page.tsx
   (app)/log/[date]/page.tsx      daily log (defaults to today)
@@ -342,7 +342,7 @@ Number inputs for every threshold in §2.7, the cutoff time, and the planned-off
 **M1: Foundations**
 - `create-next-app`, Tailwind, Vitest, ESLint. Git initialised.
 - Migrations 1–3 applied, RLS verified (a second test user can't read rows).
-- Magic-link login works. First load seeds Block 1. `.env.local.example` committed.
+- Google login works. First load seeds Block 1. `.env.local.example` committed.
 - *Done when:* signing in shows a placeholder Today with plan week 1 sessions read from the DB.
 
 **M2: Today + Daily log**

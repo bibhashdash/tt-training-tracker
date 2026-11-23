@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { Placeholder } from "../placeholder";
+import { Suspense } from "react";
+import { DailyLogScreen, DailyLogSkeleton } from "./daily-log-screen";
 
 export const metadata: Metadata = { title: "Daily log" };
 
+/** /log is today's log. */
 export default function LogPage() {
-  return <Placeholder title="Daily log" milestone={2} />;
+  return (
+    <Suspense fallback={<DailyLogSkeleton />}>
+      <DailyLogScreen />
+    </Suspense>
+  );
 }

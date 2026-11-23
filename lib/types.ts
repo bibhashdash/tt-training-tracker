@@ -43,6 +43,32 @@ export interface PlannedSession {
   description: string | null;
 }
 
+export interface SessionLog {
+  id: string;
+  date: IsoDate;
+  planned_session_id: string | null;
+  status: SessionStatus;
+  slot_used: "primary" | "backup" | "other" | null;
+  actual_minutes: number | null;
+  avg_hr: number | null;
+  rpe: number | null;
+  bike: "turbo_road" | "road_outdoor" | "tt_outdoor" | null;
+  notes: string | null;
+}
+
+export interface DailyLog {
+  id: string;
+  date: IsoDate;
+  sleep_hours: number | null;
+  bedtime: string | null;
+  diet_ok: boolean | null;
+  unplanned_drink_or_treat: boolean;
+  planned_indulgence: boolean;
+  illness: "none" | "above_neck" | "below_neck";
+  injury_note: string | null;
+  energy: number | null;
+}
+
 export interface WeekPlan {
   id: string;
   week_start: IsoDate;

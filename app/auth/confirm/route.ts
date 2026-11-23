@@ -1,27 +1,26 @@
-import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { safeNext } from "@/lib/auth";
+import { isAllowedEmail, safeNext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Landing route for the magic link. Handles both the token-hash link
- * (recommended email template, works across browsers) and the default
- * PKCE `?code=` link (must be opened in the browser that asked for it).
+ * OAuth return route. Supabase redirects here with ?code= after Google sign-in;
+ * we exchange it for a session, then refuse any account other than ALLOWED_EMAIL.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const next = safeNext(searchParams.get("next"));
-  const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
+  const to = (path: string) => NextResponse.redirect(new URL(path, request.url));
+
+  if (!code) return to("/login?error=link");
 
   const supabase = await createClient();
-  let ok = false;
-  if (tokenHash && type) {
-    ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
-  } else if (code) {
-    ok = !(await supabase.auth.exchangeCodeForSession(code)).error;
-  }
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error || !data.user) return to("/login?error=link");
 
-  return NextResponse.redirect(new URL(ok ? next : "/login?error=link", request.url));
+  if (!isAllowedEmail(data.user.email)) {
+    await supabase.auth.signOut();
+    return to("/login?error=not_allowed");
+  }
+  return to(next);
 }

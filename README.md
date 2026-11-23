@@ -15,15 +15,12 @@ Stack: Next.js 16 (App Router, Cache Components), Supabase (Postgres, email auth
    npm run db:push
    ```
    Alternatively, paste the three files in `supabase/migrations/` into the SQL editor, in order.
-4. **Auth settings** in the Supabase dashboard:
-   - *Authentication → URL Configuration:* set Site URL to your deployed URL and add `http://localhost:3000/**` and your Vercel URL `/**` to Redirect URLs.
-   - *Authentication → Email Templates → Magic Link:* replace the body with the template below. It adds the 6-digit code (needed when the app is installed on your phone's home screen) and a link that works in any browser.
-     ```html
-     <h2>Sign in to Selby TT Tracker</h2>
-     <p>Your code: <strong>{{ .Token }}</strong></p>
-     <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/today">Or tap here to sign in</a></p>
-     ```
-   - After your first sign-in, turn off *Authentication → Sign In / Providers → Allow new users to sign up*.
+4. **Google sign-in** (no email or SMTP needed):
+   - *Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID*, type **Web application**. Under *Authorized redirect URIs* add `https://<your-project-ref>.supabase.co/auth/v1/callback`. If asked, set up the consent screen first (External, app name, your email; leave it in Testing and add yourself as a test user).
+   - *Supabase → Authentication → Sign In / Providers → Google:* enable it and paste the client ID and secret.
+   - *Supabase → Authentication → URL Configuration:* set Site URL to your Vercel URL, and add both `http://localhost:3000/**` and `https://<your-app>.vercel.app/**` to Redirect URLs. Supabase only returns to listed addresses and quietly falls back to the Site URL otherwise.
+   - `ALLOWED_EMAIL` must be the Google account's address. Any other Google account is signed straight back out.
+   - After your first sign-in, turn off *Allow new users to sign up* (same Providers page) so no other account can even be created.
 5. **Run it:** `npm run dev`, open http://localhost:3000 and sign in. The first load seeds Block 1 (plan weeks 1–6, the minimum template, settings, and the week starting 23 Nov 2026).
 
 ## Deploy (Vercel)

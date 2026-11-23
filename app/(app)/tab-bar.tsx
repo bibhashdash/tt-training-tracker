@@ -11,12 +11,16 @@ const TABS = [
 ] as const;
 
 export function TabBar() {
-  const pathname = usePathname();
+  return <TabBarView pathname={usePathname()} />;
+}
+
+/** Also used without a pathname as the Suspense fallback while the route resolves. */
+export function TabBarView({ pathname }: { pathname: string | null }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
       <ul className="mx-auto grid max-w-md grid-cols-4">
         {TABS.map((tab) => {
-          const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+          const active = pathname !== null && (pathname === tab.href || pathname.startsWith(`${tab.href}/`));
           return (
             <li key={tab.href}>
               <Link

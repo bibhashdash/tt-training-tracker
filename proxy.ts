@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAllowedEmail } from "@/lib/allowed-email";
 import { supabaseKey, supabaseUrl } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/auth"];
@@ -10,6 +11,16 @@ const PUBLIC_PATHS = ["/login", "/auth"];
  * themselves (lib/auth.ts); this is only the fast path.
  */
 export async function proxy(request: NextRequest) {
+  // If Supabase falls back to the Site URL (redirect address not in its allow
+  // list), the OAuth ?code= lands on "/" and would be lost. Send it on to the
+  // route that exchanges it.
+  const code = request.nextUrl.searchParams.get("code");
+  if (code && request.nextUrl.pathname !== "/auth/confirm") {
+    const confirm = new URL("/auth/confirm", request.url);
+    confirm.searchParams.set("code", code);
+    return NextResponse.redirect(confirm);
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(supabaseUrl(), supabaseKey(), {
@@ -28,7 +39,9 @@ export async function proxy(request: NextRequest) {
 
   // getClaims() verifies the JWT; don't run code between client creation and this call.
   const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims?.sub);
+  // A session for any account other than ALLOWED_EMAIL counts as signed out here,
+  // so /login stays reachable and shows the "not allowed" message.
+  const signedIn = Boolean(data?.claims?.sub) && isAllowedEmail(data?.claims?.email);
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
