@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "Selby TT Tracker", template: "%s · Selby TT" },
   description: "Training, sleep and diet log against the plan.",
+  applicationName: "TT Tracker",
+  // iOS home-screen app: full screen, content runs under a translucent status bar.
+  appleWebApp: { capable: true, title: "TT Tracker", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {

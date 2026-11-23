@@ -18,7 +18,7 @@ Single user, mobile-first. Every daily interaction should take under 30 seconds.
 | Rules | Pure TypeScript in `lib/engine/`, with no I/O, no `Date.now()` and no Supabase imports. Tested with Vitest |
 | Time zone | Europe/London. All "today" and week-boundary logic goes through `lib/dates.ts` **[DEFAULT]** |
 | Hosting | Vercel (free tier) plus Supabase cloud (free tier) **[DECIDED]** |
-| PWA | Milestone 4: manifest, icons and a minimal service worker (installable, no offline writes) |
+| PWA | Milestone 4: manifest and icons (`scripts/generate-icons.mjs`). No service worker: browsers offer install without one, and a caching worker risks showing stale pages after sign-out **[DECIDED in M4]** |
 
 ```
 app/
