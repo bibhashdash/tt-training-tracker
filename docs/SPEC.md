@@ -322,7 +322,7 @@ Target is five taps or fewer:
 4. Planned indulgence: toggle, default on for Fridays
 5. Illness: segmented `None · Above neck · Below neck`
 
-Below that: "Injury?" link, which opens a text field; optional energy 1–5; optional bedtime. Autosaves on each change (server action, debounced). A date switcher lets you go back through the current and previous week, so the days before the app existed can be backfilled.
+Below that: "Injury?" link, which opens a text field; optional energy 1–5 ("Energy today"). Bedtime was dropped after M4: nothing read it. The nullable `daily_logs.bedtime` column is left in place, unused. Autosaves on each change (server action, debounced). A date switcher lets you go back through the current and previous week, so the days before the app existed can be backfilled.
 
 ### 5.3 Week view (`/week/[weekStart]`)
 - Mon–Sun list showing planned versus done per day with status icons, and minutes planned versus done.

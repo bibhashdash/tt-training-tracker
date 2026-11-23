@@ -16,7 +16,6 @@ interface FormState {
   illness: Illness;
   injuryNote: string;
   energy: number | null;
-  bedtime: string;
 }
 
 const SLEEP_CHIPS = [
@@ -46,7 +45,6 @@ function fromRow(row: DailyLog | null, isFriday: boolean): FormState {
     illness: row?.illness ?? "none",
     injuryNote: row?.injury_note ?? "",
     energy: row?.energy ?? null,
-    bedtime: row?.bedtime?.slice(0, 5) ?? "",
   };
 }
 
@@ -90,7 +88,6 @@ export function DailyLogForm({
           illness: state.illness,
           injuryNote: state.injuryNote,
           energy: state.energy,
-          bedtime: state.bedtime || null,
         });
         if (r.ok) {
           setStatus("saved");
@@ -164,28 +161,17 @@ export function DailyLogForm({
         )}
       </Card>
 
-      <details className="group rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <summary className="cursor-pointer list-none font-medium">
-          Energy and bedtime <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">· optional</span>
-        </summary>
-        <div className="mt-3 flex flex-col gap-3">
-          <Segmented
-            label="Energy"
-            value={state.energy}
-            options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) }))}
-            onChange={(v) => update({ energy: state.energy === v ? null : v })}
-          />
-          <label className="flex items-center justify-between gap-3">
-            <span className="text-sm">Bedtime</span>
-            <input
-              type="time"
-              value={state.bedtime}
-              onChange={(e) => update({ bedtime: e.target.value })}
-              className="h-11 rounded-lg border border-zinc-300 bg-transparent px-3 text-base dark:border-zinc-700"
-            />
-          </label>
-        </div>
-      </details>
+      <Card>
+        <p className="mb-2 font-medium">
+          Energy today <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">· optional, 1 low to 5 high</span>
+        </p>
+        <Segmented
+          label="Energy today"
+          value={state.energy}
+          options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) }))}
+          onChange={(v) => update({ energy: state.energy === v ? null : v })}
+        />
+      </Card>
 
       {!locked && (
         <p aria-live="polite" className="h-5 text-center text-sm text-zinc-500 dark:text-zinc-400">

@@ -60,7 +60,6 @@ export interface DailyLog {
   id: string;
   date: IsoDate;
   sleep_hours: number | null;
-  bedtime: string | null;
   diet_ok: boolean | null;
   unplanned_drink_or_treat: boolean;
   planned_indulgence: boolean;

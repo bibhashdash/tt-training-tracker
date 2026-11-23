@@ -101,7 +101,6 @@ export function parseSessionLog(raw: unknown): Result<SessionLogValues> {
 export interface DailyLogValues {
   date: string;
   sleep_hours: number | null;
-  bedtime: string | null;
   diet_ok: boolean | null;
   unplanned_drink_or_treat: boolean;
   planned_indulgence: boolean;
@@ -121,8 +120,6 @@ export function parseDailyLog(raw: unknown): Result<DailyLogValues> {
     sleep = Math.round(n * 10) / 10;
   }
 
-  const bedtime = raw.bedtime ?? null;
-  if (bedtime !== null && (typeof bedtime !== "string" || !HHMM.test(bedtime))) return fail("Bad bedtime.");
 
   if (raw.dietOk !== null && raw.dietOk !== undefined && typeof raw.dietOk !== "boolean") return fail("Bad diet value.");
   if (typeof raw.unplannedTreat !== "boolean" || typeof raw.plannedIndulgence !== "boolean")
@@ -137,7 +134,6 @@ export function parseDailyLog(raw: unknown): Result<DailyLogValues> {
   return ok({
     date: raw.date,
     sleep_hours: sleep,
-    bedtime,
     diet_ok: (raw.dietOk as boolean | null | undefined) ?? null,
     unplanned_drink_or_treat: raw.unplannedTreat,
     planned_indulgence: raw.plannedIndulgence,

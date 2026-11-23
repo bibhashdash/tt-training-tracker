@@ -61,13 +61,18 @@ describe("parseSessionLog", () => {
 
 describe("parseDailyLog", () => {
   const base = {
-    date: "2026-11-27", sleepHours: 7.5, bedtime: null, dietOk: true, unplannedTreat: false,
+    date: "2026-11-27", sleepHours: 7.5, dietOk: true, unplannedTreat: false,
     plannedIndulgence: true, illness: "none", injuryNote: "  ", energy: null,
   };
 
   it("accepts a valid log and blanks an empty injury note", () => {
     const r = parseDailyLog(base);
     expect(r.ok && r.value).toMatchObject({ sleep_hours: 7.5, planned_indulgence: true, injury_note: null });
+  });
+
+  it("ignores fields it doesn't know, such as the retired bedtime", () => {
+    const r = parseDailyLog({ ...base, bedtime: "23:30" });
+    expect(r.ok && "bedtime" in r.value).toBe(false);
   });
 
   it("allows sleep to be left out", () => {
@@ -79,7 +84,6 @@ describe("parseDailyLog", () => {
     expect(parseDailyLog({ ...base, sleepHours: 25 }).ok).toBe(false);
     expect(parseDailyLog({ ...base, illness: "flu" }).ok).toBe(false);
     expect(parseDailyLog({ ...base, energy: 6 }).ok).toBe(false);
-    expect(parseDailyLog({ ...base, bedtime: "25:00" }).ok).toBe(false);
     expect(parseDailyLog({ ...base, unplannedTreat: "yes" }).ok).toBe(false);
   });
 });
