@@ -19,6 +19,7 @@ export function SessionCard({
   plannedOff,
   tooLate,
   cutoff,
+  locked,
 }: {
   session: PlannedSession;
   log: SessionLog | null;
@@ -28,6 +29,8 @@ export function SessionCard({
   /** Key session that can no longer finish before the cutoff (only computed for today). */
   tooLate: boolean;
   cutoff: string;
+  /** The week has been reviewed: show what was logged, allow no changes. */
+  locked: boolean;
 }) {
   const isRide = s.kind === "ride";
   const [modeState, setMode] = useState<"buttons" | SlotUsed | null>(log ? null : "buttons");
@@ -102,7 +105,13 @@ export function SessionCard({
       </p>
 
       <div className="mt-3 flex flex-col gap-3">
-        {plannedOff && !log ? (
+        {locked ? (
+          log ? (
+            <LoggedSummary log={log} zone={s.zone} locked />
+          ) : (
+            <p className="text-sm text-zinc-500">{plannedOff ? "Planned off. Not counted." : "Not logged"}</p>
+          )
+        ) : plannedOff && !log ? (
           <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Planned off. Not counted.</p>
         ) : mode === null && log ? (
           <LoggedSummary log={log} zone={s.zone} onChange={() => setMode("buttons")} onUndo={clear} />
@@ -178,11 +187,13 @@ function LoggedSummary({
   zone,
   onChange,
   onUndo,
+  locked = false,
 }: {
   log: SessionLog;
   zone: string | null;
-  onChange: () => void;
-  onUndo: () => void;
+  onChange?: () => void;
+  onUndo?: () => void;
+  locked?: boolean;
 }) {
   const ceiling = zoneCeiling(zone);
   const z = log.avg_hr ? hrZone(log.avg_hr) : null;
@@ -191,9 +202,11 @@ function LoggedSummary({
     return (
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium text-zinc-500">Dropped</p>
-        <button type="button" onClick={onUndo} className={`${btn.ghost} h-10 px-2 text-sm`}>
-          Undo
-        </button>
+        {!locked && (
+          <button type="button" onClick={onUndo} className={`${btn.ghost} h-10 px-2 text-sm`}>
+            Undo
+          </button>
+        )}
       </div>
     );
   }
@@ -218,9 +231,11 @@ function LoggedSummary({
           {log.slot_used && SLOT_LABEL[log.slot_used]}
         </span>
       </p>
-      <button type="button" onClick={onChange} className={`${btn.ghost} h-10 px-2 text-sm`}>
-        Change
-      </button>
+      {!locked && (
+        <button type="button" onClick={onChange} className={`${btn.ghost} h-10 px-2 text-sm`}>
+          Change
+        </button>
+      )}
     </div>
   );
 }

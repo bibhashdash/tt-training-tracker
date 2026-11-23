@@ -51,7 +51,18 @@ function fromRow(row: DailyLog | null, isFriday: boolean): FormState {
 }
 
 /** Five taps or fewer: sleep, diet, treat, indulgence, illness. Saves on every change. */
-export function DailyLogForm({ date, isFriday, initial }: { date: IsoDate; isFriday: boolean; initial: DailyLog | null }) {
+export function DailyLogForm({
+  date,
+  isFriday,
+  initial,
+  locked,
+}: {
+  date: IsoDate;
+  isFriday: boolean;
+  initial: DailyLog | null;
+  /** The week has been reviewed: read-only. */
+  locked: boolean;
+}) {
   const [state, setState] = useState<FormState>(() => fromRow(initial, isFriday));
   const [showInjury, setShowInjury] = useState(Boolean(initial?.injury_note));
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(initial ? "saved" : "idle");
@@ -94,7 +105,12 @@ export function DailyLogForm({ date, isFriday, initial }: { date: IsoDate; isFri
   }, [state, date]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <fieldset disabled={locked} className="flex min-w-0 flex-col gap-4 disabled:opacity-60">
+      {locked && (
+        <legend className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+          This week has been reviewed, so this log is read-only.
+        </legend>
+      )}
       <Card>
         <p className="mb-2 font-medium">
           Sleep <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">· last night, hours</span>
@@ -171,12 +187,14 @@ export function DailyLogForm({ date, isFriday, initial }: { date: IsoDate; isFri
         </div>
       </details>
 
-      <p aria-live="polite" className="h-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
-        {status === "saving" && "Saving…"}
-        {status === "saved" && "Saved"}
-        {status === "idle" && "Not saved yet. Tap anything to save."}
-        {status === "error" && <span className="text-red-600 dark:text-red-400">Not saved: {error}</span>}
-      </p>
-    </div>
+      {!locked && (
+        <p aria-live="polite" className="h-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          {status === "saving" && "Saving…"}
+          {status === "saved" && "Saved"}
+          {status === "idle" && "Not saved yet. Tap anything to save."}
+          {status === "error" && <span className="text-red-600 dark:text-red-400">Not saved: {error}</span>}
+        </p>
+      )}
+    </fieldset>
   );
 }

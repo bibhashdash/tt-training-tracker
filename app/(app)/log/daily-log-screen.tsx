@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { addDays, formatShort, isoWeekday, weekStart } from "@/lib/dates";
 import { loadSettings, todayFor } from "@/lib/queries";
+import { isWeekLocked } from "@/lib/review";
 import { canLogDate } from "@/lib/session-rules";
 import type { DailyLog } from "@/lib/types";
 import { DailyLogForm } from "./daily-log-form";
@@ -15,7 +16,10 @@ export async function DailyLogScreen({ requested }: { requested?: string }) {
   const today = todayFor(settings);
   const date = requested && canLogDate(requested, today) ? requested : today;
 
-  const { data, error } = await supabase.from("daily_logs").select("*").eq("date", date).maybeSingle<DailyLog>();
+  const [{ data, error }, locked] = await Promise.all([
+    supabase.from("daily_logs").select("*").eq("date", date).maybeSingle<DailyLog>(),
+    isWeekLocked(supabase, date),
+  ]);
   if (error) throw error;
 
   const prev = addDays(date, -1);
@@ -44,7 +48,7 @@ export async function DailyLogScreen({ requested }: { requested?: string }) {
           <span className="w-11" />
         )}
       </header>
-      <DailyLogForm key={date} date={date} isFriday={isoWeekday(date) === 5} initial={data} />
+      <DailyLogForm key={date} date={date} isFriday={isoWeekday(date) === 5} initial={data} locked={locked} />
     </div>
   );
 }

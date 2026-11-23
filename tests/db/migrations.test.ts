@@ -215,3 +215,79 @@ describe("session_logs", () => {
     });
   });
 });
+
+describe("record_weekly_review", () => {
+  const review = (weekStart: string, nextWeekStart: string, nextPlanWeek: number | null, variant = "normal") =>
+    db.query<{ id: string }>(
+      `select public.record_weekly_review(
+         $1::date, 1, 3, 3, 100::smallint, false, false, false, 'advance', '[]'::jsonb,
+         'accepted', 'advance', null, null, $2::date, 2, $3, $4::week_variant, null) as id`,
+      [weekStart, nextWeekStart, nextPlanWeek, variant],
+    );
+
+  it("records the review and schedules next week atomically", async () => {
+    await asUser(USER_A, async () => {
+      const { rows } = await review("2026-11-23", "2026-11-30", 2);
+      expect(rows[0].id).toMatch(/^[0-9a-f-]{36}$/);
+
+      const next = await db.query<{ pointer: number; plan_week: number; source: string; review_id: string }>(
+        `select wp.pointer, pw.plan_week, wp.source, wp.review_id from week_plans wp
+         join plan_weeks pw on pw.id = wp.plan_week_id where wp.week_start = '2026-11-30'`,
+      );
+      expect(next.rows[0]).toMatchObject({ pointer: 2, plan_week: 2, source: "review", review_id: rows[0].id });
+
+      const r = await db.query<{ flags_count: number; decision_note: string | null }>(
+        "select flags_count, decision_note from weekly_reviews where week_start = '2026-11-23'",
+      );
+      expect(r.rows[0]).toEqual({ flags_count: 0, decision_note: null });
+    });
+  });
+
+  it("refuses a second review of the same week and leaves nothing half-written", async () => {
+    await asUser(USER_A, async () => {
+      await expect(review("2026-11-23", "2026-12-07", 3)).rejects.toThrow(/duplicate key/);
+      expect(await count("select * from week_plans where week_start = '2026-12-07'")).toBe(0);
+    });
+  });
+
+  it("refuses to review a week with no plan", async () => {
+    await asUser(USER_A, async () => {
+      await expect(review("2027-03-01", "2027-03-08", 2)).rejects.toThrow(/No plan for the week/);
+    });
+  });
+
+  it("can't be used to review someone else's week", async () => {
+    await asUser(USER_B, async () => {
+      await expect(review("2026-11-30", "2026-12-07", 3)).rejects.toThrow(/No plan for the week/);
+    });
+  });
+});
+
+describe("reviewed weeks are locked", () => {
+  it("rejects adding, changing or removing logs in a reviewed week", async () => {
+    await asUser(USER_A, async () => {
+      // Week of 23 Nov was reviewed above; a log from earlier in this file is still there.
+      await expect(db.query(`insert into daily_logs (date, sleep_hours) values ('2026-11-24', 7)`)).rejects.toThrow(
+        /reviewed and is locked/,
+      );
+      await expect(db.query(`update session_logs set actual_minutes = 50 where date = '2026-11-23'`)).rejects.toThrow(
+        /reviewed and is locked/,
+      );
+      await expect(db.query(`delete from session_logs where date = '2026-11-23'`)).rejects.toThrow(
+        /reviewed and is locked/,
+      );
+    });
+  });
+
+  it("still allows logs in the next, unreviewed week", async () => {
+    await asUser(USER_A, async () => {
+      await db.query(`insert into daily_logs (date, sleep_hours) values ('2026-11-30', 7)`);
+      expect(await count("select * from daily_logs where date = '2026-11-30'")).toBe(1);
+    });
+  });
+
+  it("doesn't block admin work such as deleting the account", async () => {
+    await db.exec(`delete from auth.users where id = '${USER_A}'`);
+    expect(await count(`select * from session_logs where user_id = '${USER_A}'`)).toBe(0);
+  });
+});

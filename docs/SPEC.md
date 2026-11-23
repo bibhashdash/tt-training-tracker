@@ -134,7 +134,7 @@ As in the brief. Extra details:
 | review_opens_time | 18:00 (on Sundays) |
 | planned_off_dates | `date[]`, seeded with `{2026-12-25}` |
 
-Any planned session that falls on a date in `planned_off_dates` is auto-shown as planned off, and a `planned_off` log is written when the day is opened. This applies whichever plan week is running, so it still works if the plan has slipped.
+Any planned session that falls on a date in `planned_off_dates` is shown as planned off and excluded by the engine. No log row is written (opening a page has no side effects) **[DECIDED in M2]**. This applies whichever plan week is running, so it still works if the plan has slipped.
 
 ### 2.8 RLS
 Every table: `enable row level security`, plus a single policy `for all using (user_id = auth.uid()) with check (user_id = auth.uid())`. `planned_sessions` gets the same, carrying its own `user_id`, so no joins are needed in policies.
@@ -244,6 +244,7 @@ interface SuggestOut {
 1. Any non-empty `injuryNote` in the week → `rest_injury`. Reason text: "Injury noted on {day}. Rest and see a GP before riding again." No plan suggestion follows.
 2. `illnessDays >= 7` → `step_back`
 3. `illnessDays >= 3` → `repeat_after_illness`
+3a. No rides left to count (rest week, or every ride planned off) → `repeat`. Without this, 0 of 0 would read as 100% and advance **[DECIDED in M3]**
 4. `flags.count >= 2 || completionPct < completionMinimumPct` → `minimum`
 5. `completionPct >= completionAdvancePct` → `advance`
 6. else → `repeat`
@@ -264,6 +265,10 @@ Also pure. It turns the accepted or overridden decision into next week's `week_p
 | `{planWeek: n}` (override) | n | n | normal |
 
 If the current week has `pending_after` set (it was an easy-return week) and it reviews as `advance` or `repeat`, the next week schedules `pending_after`, which is the interrupted plan week redone, with the pointer unchanged. Other outcomes apply as normal **[DECIDED]**.
+
+More generally, after any week on hold (minimum, easy return or rest), `advance` and `repeat` both return to the held plan week (`Back to plan week N`) rather than skipping past it, because the pointer never moved during the hold **[DECIDED in M3]**.
+
+The DB function `record_weekly_review` stores the review and creates next week's `week_plans` row in one transaction. Next week normally starts the Monday after the reviewed week; if the review is late, it starts the current Monday instead, and the missed weeks show only as calendar-vs-plan gap **[DECIDED in M3]**.
 
 At the end of the block, `advance` from week 6 has nowhere to go. The review says "Block 1 complete: add Block 2" and the options become repeat week 6, or minimum **[DEFAULT]**.
 
@@ -331,6 +336,7 @@ Below that: "Injury?" link, which opens a text field; optional energy 1–5; opt
 - **Override** opens a picker (advance / repeat / minimum / step back / rest / specific plan week) plus a required one-line note, then saves the same way.
 - `rest_injury` has no Accept-to-plan. It shows the GP message, then "Mark week as rest".
 - Reviews are read-only once decided, and past reviews are reachable from Week view.
+- Deciding locks that week's session and daily logs. A DB trigger rejects any insert, update or delete in a reviewed week for the app's signed-in role.
 
 ### 5.5 Settings (`/settings`)
 Number inputs for every threshold in §2.7, the cutoff time, and the planned-off dates list. Sign out.

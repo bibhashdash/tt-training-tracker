@@ -2,9 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Card } from "@/components/ui";
-import { addDays, dateOfWeekday, formatShort, isoWeekday, timeIn, weekdayShort, weekStart, type Weekday } from "@/lib/dates";
+import {
+  addDays,
+  dateOfWeekday,
+  formatShort,
+  hhmm,
+  isoWeekday,
+  timeIn,
+  weekdayShort,
+  weekStart,
+  type Weekday,
+} from "@/lib/dates";
+import { requireUser } from "@/lib/auth";
 import { getDayContext, type DayContext } from "@/lib/queries";
-import { hhmm } from "@/lib/dates";
+import { getPendingReview, isWeekLocked } from "@/lib/review";
 import { tooLateForKey } from "@/lib/session-rules";
 import type { WeekVariant } from "@/lib/types";
 import { SessionCard } from "./session-card";
@@ -31,6 +42,11 @@ async function Today({ searchParams }: Pick<PageProps<"/today">, "searchParams">
   const { date: requested } = await searchParams;
   const ctx = await getDayContext(typeof requested === "string" ? requested : undefined);
   const { today, date, calendarWeek, settings, weekPlan, sessionLogs, dailyLog } = ctx;
+  const { supabase } = await requireUser();
+  const [pendingReview, locked] = await Promise.all([
+    getPendingReview(supabase, settings, today),
+    isWeekLocked(supabase, date),
+  ]);
 
   const weekday = isoWeekday(date);
   const isToday = date === today;
@@ -67,13 +83,42 @@ async function Today({ searchParams }: Pick<PageProps<"/today">, "searchParams">
         </p>
       </header>
 
+      {pendingReview && (
+        <Link
+          href={`/review/${pendingReview.weekStart}`}
+          className="flex items-center justify-between gap-3 rounded-xl bg-zinc-900 p-4 text-white dark:bg-zinc-100 dark:text-zinc-900"
+        >
+          <span>
+            <span className="block font-semibold">
+              Review the week of {formatShort(pendingReview.weekStart)}
+            </span>
+            <span className="block text-sm opacity-80">
+              {pendingReview.blocking
+                ? "Next week's plan is set by the review. Finish any missing logs first."
+                : "The week's done. See the suggestion for next week."}
+            </span>
+          </span>
+          <span aria-hidden className="text-xl">
+            ›
+          </span>
+        </Link>
+      )}
+
       <DayStrip ctx={ctx} />
+
+      {locked && (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          This week has been reviewed, so its logs are read-only.
+        </p>
+      )}
 
       {!weekPlan ? (
         <Card>
-          <p className="font-medium">No plan for this week.</p>
+          <p className="font-medium">No plan for this week yet.</p>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Each week&apos;s plan is set by the Sunday review (milestone 3).
+            {pendingReview?.blocking
+              ? "Review last week (above) and the plan for this week appears here."
+              : "Each week's plan is set by the Sunday review."}
           </p>
         </Card>
       ) : weekPlan.variant === "rest" ? (
@@ -98,12 +143,13 @@ async function Today({ searchParams }: Pick<PageProps<"/today">, "searchParams">
               plannedOff={plannedOff}
               tooLate={isToday && tooLateForKey(s, now, cutoff)}
               cutoff={cutoff}
+              locked={locked}
             />
           ))}
         </section>
       )}
 
-      <UnplannedRides key={date} rides={unplanned} date={date} weekday={weekday} />
+      <UnplannedRides key={date} rides={unplanned} date={date} weekday={weekday} locked={locked} />
 
       <Link
         href={`/log/${date}`}
