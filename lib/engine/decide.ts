@@ -43,7 +43,7 @@ export function describeNextWeek(current: PlanState, next: NextWeekPlan): string
   if (next.variant === "rest") return "Rest week. See a GP before riding again.";
   if (next.variant === "easy_return") return `Easy week, then plan week ${next.pendingAfter}`;
   if (next.variant === "minimum") return `Minimum week (plan week ${next.pointer} on hold)`;
-  if (next.blockComplete) return `Block complete. Repeat plan week ${next.planWeek} until Block 2 is added`;
+  if (next.blockComplete) return `Block complete. Repeat plan week ${next.planWeek} until the next block is added`;
   if (current.variant !== "normal" && next.planWeek === current.pointer) return `Back to plan week ${next.planWeek}`;
   if (next.planWeek! > current.pointer) return `Move on to plan week ${next.planWeek}`;
   if (next.planWeek! < current.pointer) return `Step back to plan week ${next.planWeek}`;

@@ -378,3 +378,14 @@ Number inputs for every threshold in §2.7, the cutoff time, and the planned-off
 
 ## 8. Timing note
 Block 1 starts **today (Mon 23 Nov 2026)**. Week 1 will be partly done before the app exists. The daily log and Today screens allow backfilling any day of the current week, so week 1's review can still run on Sun 29 Nov if M1–M3 land by then. Otherwise, run the week 1 review by hand and seed `week_plans` for week 2 directly.
+
+## 9. Training blocks (added after M4)
+
+Settings → Training blocks lists every block and opens an editor for each.
+
+- **Plan week numbering runs on across blocks.** Block 2 starts at plan week 7. The engine's "last plan week" comes from the data, so `advance` from week 6 goes to week 7 once Block 2 exists, and "Block complete" only appears at the end of the last block.
+- **Scheduled weeks are read-only.** A plan week referenced by any `week_plans` row keeps exactly the plan it was ridden against. The DB function `save_block` skips such weeks and refuses to delete them, whatever the client sends.
+- **Only the last block can grow or shrink**, so plan week numbers stay contiguous. Earlier blocks can be edited week by week but keep their length.
+- **Copy and progress:** a new block copies the last one and raises ride targets in build weeks by a chosen % (default 10), rounded to 5 min and capped at each slot's ceiling. Habits/easy weeks, core and slots are unchanged.
+- **Checks** (`lib/blocks.ts`, run in the browser and again on the server): errors block saving (minutes 1-600, target within the slot ceiling, one ride and one core per day, valid times, contiguous weeks). Warnings never block: a key session that can't finish before the cutoff in its primary or backup slot, a week with no rides, and a build week more than 20% above the previous build week.
+- The minimum template (plan week 0) isn't editable here yet.

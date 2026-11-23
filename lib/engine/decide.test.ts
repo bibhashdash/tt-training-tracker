@@ -83,6 +83,6 @@ describe("describeNextWeek", () => {
     expect(say(at(3), "repeat_after_illness")).toBe("Easy week, then plan week 3");
     expect(say(at(3), "rest_injury")).toBe("Rest week. See a GP before riding again.");
     expect(say(at(3, { variant: "minimum" }), "advance")).toBe("Back to plan week 3");
-    expect(say(at(6), "advance")).toBe("Block complete. Repeat plan week 6 until Block 2 is added");
+    expect(say(at(6), "advance")).toBe("Block complete. Repeat plan week 6 until the next block is added");
   });
 });
