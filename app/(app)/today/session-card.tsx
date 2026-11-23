@@ -1,5 +1,7 @@
 "use client";
 
+import { Activity } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { deleteSessionLog, saveSessionLog } from "@/app/actions/logs";
 import { btn, Card, ErrorText } from "@/components/ui";
@@ -20,6 +22,7 @@ export function SessionCard({
   tooLate,
   cutoff,
   locked,
+  canStartActivity,
 }: {
   session: PlannedSession;
   log: SessionLog | null;
@@ -31,6 +34,8 @@ export function SessionCard({
   cutoff: string;
   /** The week has been reviewed: show what was logged, allow no changes. */
   locked: boolean;
+  /** Today, not locked or planned off: the ride can be done live with the HR strap. */
+  canStartActivity: boolean;
 }) {
   const isRide = s.kind === "ride";
   const [modeState, setMode] = useState<"buttons" | SlotUsed | null>(log ? null : "buttons");
@@ -68,7 +73,10 @@ export function SessionCard({
     );
 
   const drop = () =>
-    run(() => saveSessionLog({ date, plannedSessionId: s.id, status: "dropped" }), () => setMode(null));
+    run(
+      () => saveSessionLog({ date, plannedSessionId: s.id, status: "dropped" }),
+      () => setMode(null),
+    );
 
   const clear = () =>
     run(
@@ -130,24 +138,37 @@ export function SessionCard({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              <button type="button" disabled={pending} onClick={() => setMode("primary")} className={`${btn.base} ${btn.primary}`}>
-                Done
-              </button>
-              <button
-                type="button"
-                disabled={pending || !s.backup_slot}
-                onClick={() => {
-                  if (backupCap !== null && values.minutes > backupCap) setValues({ ...values, minutes: backupCap });
-                  setMode("backup");
-                }}
-                className={`${btn.base} ${btn.secondary}`}
-              >
-                Used backup
-              </button>
-              <button type="button" disabled={pending} onClick={drop} className={`${btn.base} ${btn.secondary}`}>
-                Dropped
-              </button>
+            <div className="flex flex-col gap-2">
+              {isRide && canStartActivity && !log && (
+                <Link href={`/activity/${s.id}`} className={`${btn.base} ${btn.primary} h-14 gap-2 text-base`}>
+                  <Activity aria-hidden size={20} />
+                  Start activity
+                </Link>
+              )}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setMode("primary")}
+                  className={`${btn.base} ${isRide && canStartActivity && !log ? btn.secondary : btn.primary}`}
+                >
+                  Done
+                </button>
+                <button
+                  type="button"
+                  disabled={pending || !s.backup_slot}
+                  onClick={() => {
+                    if (backupCap !== null && values.minutes > backupCap) setValues({ ...values, minutes: backupCap });
+                    setMode("backup");
+                  }}
+                  className={`${btn.base} ${btn.secondary}`}
+                >
+                  Used backup
+                </button>
+                <button type="button" disabled={pending} onClick={drop} className={`${btn.base} ${btn.secondary}`}>
+                  Dropped
+                </button>
+              </div>
             </div>
           )
         ) : mode !== null ? (
@@ -167,7 +188,11 @@ export function SessionCard({
               kind={s.kind}
             />
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setMode(log ? null : "buttons")} className={`${btn.base} ${btn.secondary}`}>
+              <button
+                type="button"
+                onClick={() => setMode(log ? null : "buttons")}
+                className={`${btn.base} ${btn.secondary}`}
+              >
                 Cancel
               </button>
               <button type="submit" disabled={pending || values.minutes < 1} className={`${btn.base} ${btn.primary}`}>
@@ -222,7 +247,9 @@ function LoggedSummary({
             <>
               {" "}
               · {log.avg_hr} bpm{" "}
-              <span className={ceiling !== null && z !== null && z > ceiling ? "text-amber-700 dark:text-amber-300" : ""}>
+              <span
+                className={ceiling !== null && z !== null && z > ceiling ? "text-amber-700 dark:text-amber-300" : ""}
+              >
                 (Z{z})
               </span>
             </>

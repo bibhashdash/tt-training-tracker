@@ -389,3 +389,14 @@ Settings → Training blocks lists every block and opens an editor for each.
 - **Copy and progress:** a new block copies the last one and raises ride targets in build weeks by a chosen % (default 10), rounded to 5 min and capped at each slot's ceiling. Habits/easy weeks, core and slots are unchanged.
 - **Checks** (`lib/blocks.ts`, run in the browser and again on the server): errors block saving (minutes 1-600, target within the slot ceiling, one ride and one core per day, valid times, contiguous weeks). Warnings never block: a key session that can't finish before the cutoff in its primary or backup slot, a week with no rides, and a build week more than 20% above the previous build week.
 - The minimum template (plan week 0) isn't editable here yet.
+
+## 10. Activity (live heart rate)
+
+"Start activity" on today's ride card opens `/activity/<session id>`: a full-screen, guitar-tuner style view fed by a Bluetooth chest strap.
+
+- **Connection:** Web Bluetooth (Chrome on Android, desktop Chrome), standard Heart Rate service `0x180D`, characteristic `0x2A37`. One tap opens Chrome's device picker; drops reconnect automatically (5 tries, 2 s apart), then offer a Reconnect button. The screen is kept awake (Wake Lock API). The app must stay on screen: Chrome may drop Bluetooth when it's backgrounded.
+- **Display:** bpm averaged over 5 s; status under / in zone / over against the session's zone (`Z1-2` has no floor; zone bpm bounds in `lib/hr.ts`, matching `hrZone`). Key sessions get an Effort / Recovery (Z1-2) toggle for intervals.
+- **Nudges:** after 10 s out of zone, then every 30 s: one long vibration = push on, three short = ease off; optional beep.
+- **Finish:** minutes (wall clock), time-weighted average HR and % in zone (gaps capped at 5 s) prefill the Done form; saving logs the session like any other and notes the % in zone.
+- **Testing:** Settings → Heart rate demo (`/activity/demo`) runs the same screen with no session behind it: pick any zone (Z1-2 to Z4, switchable mid-ride), use the strap or a simulated heart rate (Sim 110 / 145 / 165), and nothing is saved. On a real ride, `?sim=1` on the activity URL also enables the simulator.
+- Not stored: the per-second readings (only the summary is saved). No background recording.

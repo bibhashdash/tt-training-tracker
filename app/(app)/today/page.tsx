@@ -144,6 +144,7 @@ async function Today({ searchParams }: Pick<PageProps<"/today">, "searchParams">
               tooLate={isToday && tooLateForKey(s, now, cutoff)}
               cutoff={cutoff}
               locked={locked}
+              canStartActivity={isToday && !locked && !plannedOff}
             />
           ))}
         </section>
