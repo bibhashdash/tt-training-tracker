@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Selby TT Tracker
 
-## Getting Started
+Single-user, mobile-first log of training, sleep and diet against a fixed plan, with a Sunday review that suggests next week's plan. Full spec: [docs/SPEC.md](docs/SPEC.md).
 
-First, run the development server:
+Stack: Next.js 16 (App Router, Cache Components), Supabase (Postgres, email auth, RLS), Tailwind, Vitest.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## First-time setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Create a Supabase project** at supabase.com (free tier, region London `eu-west-2`).
+2. **Env vars:** copy `.env.local.example` to `.env.local` and fill in the project URL, publishable key and `ALLOWED_EMAIL` (your address; nobody else can sign in).
+3. **Apply the migrations** with the Supabase CLI:
+   ```sh
+   npx supabase login
+   npx supabase link --project-ref <your-project-ref>
+   npm run db:push
+   ```
+   Alternatively, paste the three files in `supabase/migrations/` into the SQL editor, in order.
+4. **Auth settings** in the Supabase dashboard:
+   - *Authentication → URL Configuration:* set Site URL to your deployed URL and add `http://localhost:3000/**` and your Vercel URL `/**` to Redirect URLs.
+   - *Authentication → Email Templates → Magic Link:* replace the body with the template below. It adds the 6-digit code (needed when the app is installed on your phone's home screen) and a link that works in any browser.
+     ```html
+     <h2>Sign in to Selby TT Tracker</h2>
+     <p>Your code: <strong>{{ .Token }}</strong></p>
+     <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/today">Or tap here to sign in</a></p>
+     ```
+   - After your first sign-in, turn off *Authentication → Sign In / Providers → Allow new users to sign up*.
+5. **Run it:** `npm run dev`, open http://localhost:3000 and sign in. The first load seeds Block 1 (plan weeks 1–6, the minimum template, settings, and the week starting 23 Nov 2026).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Import the repo in Vercel, add the same env vars (plus `NEXT_PUBLIC_SITE_URL`), deploy, then add the Vercel URL to Supabase's redirect URLs.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm test` | Vitest: date helpers, plus the migrations run in an in-process Postgres (PGlite) to check seeding, RLS and the weekday guard |
+| `npm run typecheck` | Route types + `tsc` |
+| `npm run lint` | ESLint |
+| `npm run db:push` | Apply migrations to the linked Supabase project |
