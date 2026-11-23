@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Card } from "@/components/ui";
+import { Card, Stat } from "@/components/ui";
 import { addDays, formatShort } from "@/lib/dates";
 import { applyDecision, describeNextWeek } from "@/lib/engine/decide";
 import { getReviewContext } from "@/lib/review";
@@ -120,22 +120,6 @@ async function Review({ params }: Pick<PageProps<"/review/[weekStart]">, "params
           <ReviewForm weekStart={ctx.weekStart} plan={plan} suggestion={result.suggestion} headline={ctx.headline} />
         </>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value, sub, flagged }: { label: string; value: string; sub: string; flagged?: boolean }) {
-  return (
-    <div
-      className={`rounded-xl border p-3 ${
-        flagged
-          ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40"
-          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-      }`}
-    >
-      <dt className="text-xs text-zinc-500 dark:text-zinc-400">{label}</dt>
-      <dd className="text-xl font-semibold">{value}</dd>
-      <dd className="text-xs text-zinc-500 dark:text-zinc-400">{sub}</dd>
     </div>
   );
 }

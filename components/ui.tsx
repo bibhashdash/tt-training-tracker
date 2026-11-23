@@ -101,3 +101,20 @@ export function ErrorText({ children }: { children: ReactNode }) {
     </p>
   );
 }
+
+/** Small summary tile; amber when the value trips a flag. Use inside a <dl>. */
+export function Stat({ label, value, sub, flagged }: { label: string; value: string; sub: string; flagged?: boolean }) {
+  return (
+    <div
+      className={`rounded-xl border p-3 ${
+        flagged
+          ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40"
+          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+      }`}
+    >
+      <dt className="text-xs text-zinc-500 dark:text-zinc-400">{label}</dt>
+      <dd className="text-xl font-semibold">{value}</dd>
+      <dd className="text-xs text-zinc-500 dark:text-zinc-400">{sub}</dd>
+    </div>
+  );
+}

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { Placeholder } from "../placeholder";
+import { Suspense } from "react";
+import { WeekScreen, WeekSkeleton } from "./week-screen";
 
 export const metadata: Metadata = { title: "Week" };
 
+/** /week is the current week. */
 export default function WeekPage() {
-  return <Placeholder title="Week" milestone={4} />;
+  return (
+    <Suspense fallback={<WeekSkeleton />}>
+      <WeekScreen />
+    </Suspense>
+  );
 }
