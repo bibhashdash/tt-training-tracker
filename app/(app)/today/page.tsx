@@ -1,3 +1,4 @@
+import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -145,12 +146,13 @@ async function Today({ searchParams }: Pick<PageProps<"/today">, "searchParams">
               cutoff={cutoff}
               locked={locked}
               canStartActivity={isToday && !locked && !plannedOff}
+              threshold={settings.threshold_hr}
             />
           ))}
         </section>
       )}
 
-      <UnplannedRides key={date} rides={unplanned} date={date} weekday={weekday} locked={locked} />
+      <UnplannedRides key={date} rides={unplanned} date={date} weekday={weekday} locked={locked} threshold={settings.threshold_hr} />
 
       <Link
         href={`/log/${date}`}
@@ -178,6 +180,25 @@ async function Today({ searchParams }: Pick<PageProps<"/today">, "searchParams">
           ›
         </span>
       </Link>
+
+      {isToday && !locked && (
+        <>
+          {/* Room so the floating button never covers the last card. */}
+          <div aria-hidden className="h-16" />
+          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-20">
+            <div className="mx-auto flex max-w-md justify-end px-4">
+              <Link
+                href="/activity/free"
+                aria-label="Record a ride"
+                className="pointer-events-auto flex h-14 items-center gap-2 rounded-full bg-emerald-600 pl-4 pr-5 font-semibold text-white shadow-lg shadow-emerald-900/20 active:bg-emerald-700"
+              >
+                <Play aria-hidden size={20} fill="currentColor" />
+                Record ride
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

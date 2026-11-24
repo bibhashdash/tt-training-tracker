@@ -55,6 +55,9 @@ export interface SessionLogValues {
   rpe: number | null;
   bike: Bike | null;
   notes: string | null;
+  /** Only present when sent (live rides with a trainer), so editing a log elsewhere keeps them. */
+  avg_power?: number | null;
+  avg_cadence?: number | null;
 }
 
 export function parseSessionLog(raw: unknown): Result<SessionLogValues> {
@@ -74,6 +77,7 @@ export function parseSessionLog(raw: unknown): Result<SessionLogValues> {
     return ok({
       date, planned_session_id: planned, status: s,
       slot_used: null, actual_minutes: null, avg_hr: null, rpe: null, bike: null, notes: null,
+      avg_power: null, avg_cadence: null,
     });
   }
 
@@ -89,10 +93,16 @@ export function parseSessionLog(raw: unknown): Result<SessionLogValues> {
   if (bike !== null && !BIKE_VALUES.includes(bike as Bike)) return fail("Pick a bike.");
   const notes = optionalText(raw.notes, 500);
   if (notes === "invalid") return fail("Notes are limited to 500 characters.");
+  const power = optionalInt(raw.avgPower, 0, 2000);
+  if (power === "invalid") return fail("Average power must be 0 to 2000 W.");
+  const cadence = optionalInt(raw.avgCadence, 0, 250);
+  if (cadence === "invalid") return fail("Average cadence must be 0 to 250 rpm.");
 
   return ok({
     date, planned_session_id: planned, status: s, slot_used: slot as SlotUsed,
     actual_minutes: minutes, avg_hr: hr, rpe, bike: bike as Bike | null, notes,
+    ...("avgPower" in raw ? { avg_power: power } : {}),
+    ...("avgCadence" in raw ? { avg_cadence: cadence } : {}),
   });
 }
 
@@ -153,6 +163,8 @@ export interface SettingsValues {
   completion_minimum_pct: number;
   cutoff_time: string;
   planned_off_dates: string[];
+  ftp: number;
+  threshold_hr: number;
 }
 
 export function parseSettings(form: Record<string, unknown>): Result<SettingsValues> {
@@ -164,6 +176,8 @@ export function parseSettings(form: Record<string, unknown>): Result<SettingsVal
     ["diet_flag_days", "Off-plan days", 1, 7],
     ["completion_advance_pct", "Advance %", 0, 100],
     ["completion_minimum_pct", "Minimum %", 0, 100],
+    ["ftp", "FTP", 50, 600],
+    ["threshold_hr", "Threshold heart rate", 100, 220],
   ];
   const nums: Record<string, number> = {};
   for (const [key, label, min, max] of ints) {
@@ -191,5 +205,7 @@ export function parseSettings(form: Record<string, unknown>): Result<SettingsVal
     completion_minimum_pct: nums.completion_minimum_pct,
     cutoff_time: cutoff,
     planned_off_dates: [...new Set(dates)].sort(),
+    ftp: nums.ftp,
+    threshold_hr: nums.threshold_hr,
   });
 }

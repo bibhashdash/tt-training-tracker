@@ -18,11 +18,14 @@ export function RideFields({
   cap,
   zone,
   kind = "ride",
+  threshold,
 }: {
   values: RideValues;
   onChange: (v: RideValues) => void;
   cap: number | null;
   zone: string | null;
+  /** Threshold heart rate from Settings, for the zone badge. */
+  threshold: number;
   /** Core sessions only need minutes (and optional notes). */
   kind?: "ride" | "core";
 }) {
@@ -31,7 +34,7 @@ export function RideFields({
   const hr = Number(values.avgHr);
   const hrValid = values.avgHr !== "" && Number.isInteger(hr) && hr >= 40 && hr <= 230;
   const ceiling = zoneCeiling(zone);
-  const overZone = hrValid && ceiling !== null && hrZone(hr) > ceiling;
+  const overZone = hrValid && ceiling !== null && hrZone(hr, threshold) > ceiling;
 
   return (
     <div className="flex flex-col gap-3">
@@ -87,7 +90,7 @@ export function RideFields({
                   : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
               }`}
             >
-              Z{hrZone(hr)}
+              Z{hrZone(hr, threshold)}
               {overZone && " · above target"}
             </span>
           )}

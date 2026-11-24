@@ -5,7 +5,7 @@
 import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import { btn, ErrorText } from "@/components/ui";
 import { gaugePosition, gaugeRange, simTargets, type Bounds, type ZoneStatus } from "@/lib/hr";
-import type { LinkStatus } from "./[sessionId]/use-heart-rate";
+import type { LinkStatus } from "./use-heart-rate";
 
 export const STATUS_UI: Record<ZoneStatus, { text: string; panel: string; Icon: typeof Check }> = {
   under: { text: "Push on", panel: "bg-sky-600 text-white", Icon: ArrowUp },

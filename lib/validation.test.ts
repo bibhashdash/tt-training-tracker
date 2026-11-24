@@ -29,6 +29,15 @@ describe("parseSessionLog", () => {
     });
   });
 
+  it("takes average power and cadence when sent, and leaves them out when not", () => {
+    const withPower = parseSessionLog({ ...done, avgPower: 145, avgCadence: 88 });
+    expect(withPower.ok && withPower.value).toMatchObject({ avg_power: 145, avg_cadence: 88 });
+    const without = parseSessionLog(done);
+    expect(without.ok && "avg_power" in without.value).toBe(false); // an edit won't wipe recorded power
+    expect(parseSessionLog({ ...done, avgPower: 3000 }).ok).toBe(false);
+    expect(parseSessionLog({ ...done, avgCadence: -1 }).ok).toBe(false);
+  });
+
   it("strips everything but the status from a dropped session", () => {
     const r = parseSessionLog({ ...done, status: "dropped" });
     expect(r.ok && r.value).toMatchObject({ status: "dropped", actual_minutes: null, bike: null, slot_used: null });
@@ -93,6 +102,8 @@ describe("parseSettings", () => {
     sleep_threshold_hours: "6.5", sleep_flag_nights: "3", diet_flag_days: "2",
     completion_advance_pct: "75", completion_minimum_pct: "60", cutoff_time: "19:00",
     planned_off_dates: "2026-12-25, 2026-12-25\n2027-01-01",
+    ftp: "160",
+    threshold_hr: "172",
   };
 
   it("parses the form and dedupes planned-off dates", () => {
@@ -101,6 +112,8 @@ describe("parseSettings", () => {
       sleep_threshold_hours: 6.5, sleep_flag_nights: 3, diet_flag_days: 2,
       completion_advance_pct: 75, completion_minimum_pct: 60, cutoff_time: "19:00",
       planned_off_dates: ["2026-12-25", "2027-01-01"],
+      ftp: 160,
+      threshold_hr: 172,
     });
   });
 
@@ -114,5 +127,7 @@ describe("parseSettings", () => {
     expect(parseSettings({ ...form, planned_off_dates: "Christmas" }).ok).toBe(false);
     expect(parseSettings({ ...form, cutoff_time: "7pm" }).ok).toBe(false);
     expect(parseSettings({ ...form, sleep_flag_nights: "0" }).ok).toBe(false);
+    expect(parseSettings({ ...form, ftp: "40" }).ok).toBe(false);
+    expect(parseSettings({ ...form, threshold_hr: "250" }).ok).toBe(false);
   });
 });

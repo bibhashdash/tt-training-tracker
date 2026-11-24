@@ -18,6 +18,10 @@ export interface Settings {
   block_start_date: IsoDate;
   review_opens_time: string;
   planned_off_dates: IsoDate[];
+  /** Functional threshold power, W. Power zones come from it. */
+  ftp: number;
+  /** Threshold heart rate, bpm. Heart rate zones come from it. */
+  threshold_hr: number;
 }
 
 export interface PlanWeek {
@@ -54,6 +58,8 @@ export interface SessionLog {
   rpe: number | null;
   bike: "turbo_road" | "road_outdoor" | "tt_outdoor" | null;
   notes: string | null;
+  avg_power: number | null;
+  avg_cadence: number | null;
 }
 
 export interface DailyLog {

@@ -117,3 +117,35 @@ describe("save_block", () => {
     });
   });
 });
+
+describe("power migration", () => {
+  it("gives existing settings FTP 160 and threshold 172, within limits", async () => {
+    await as(USER, async () => {
+      expect(await q("select ftp, threshold_hr from settings")).toEqual([{ ftp: 160, threshold_hr: 172 }]);
+      await expect(db.query("update settings set ftp = 20")).rejects.toThrow(/check constraint/);
+      await expect(db.query("update settings set threshold_hr = 250")).rejects.toThrow(/check constraint/);
+    });
+  });
+
+  it("stores average power and cadence on done rides only", async () => {
+    await as(USER, async () => {
+      await db.query(
+        `insert into session_logs (date, status, slot_used, actual_minutes, bike, avg_power, avg_cadence)
+         values ('2026-11-24', 'done', 'other', 40, 'turbo_road', 145, 88)`,
+      );
+      expect(await q("select avg_power, avg_cadence from session_logs where date = '2026-11-24'")).toEqual([
+        { avg_power: 145, avg_cadence: 88 },
+      ]);
+      const [{ id }] = await q<{ id: string }>(
+        `select ps.id from planned_sessions ps join plan_weeks pw on pw.id = ps.plan_week_id
+         where pw.plan_week = 1 and ps.weekday = 3`,
+      );
+      await expect(
+        db.query(
+          `insert into session_logs (date, planned_session_id, status, avg_power) values ('2026-11-25', $1, 'dropped', 100)`,
+          [id],
+        ),
+      ).rejects.toThrow(/session_logs_power_only_when_done/);
+    });
+  });
+});

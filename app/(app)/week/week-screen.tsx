@@ -134,6 +134,7 @@ export async function WeekScreen({ requested }: { requested?: string }) {
                       <span key={u.id} className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                         <Check aria-hidden size={16} className="text-zinc-400" />
                         Unplanned · {u.actual_minutes} min
+                        {u.avg_power !== null && ` · ${u.avg_power} W`}
                       </span>
                     ))}
                   </div>
@@ -163,7 +164,9 @@ function SessionLine({ ds }: { ds: DaySession }) {
   const { Icon, label, cls } = STATE[ds.state];
   const s = ds.session;
   const minutes =
-    ds.state === "done" && ds.log?.actual_minutes ? `${ds.log.actual_minutes} of ${s.target_minutes} min` : `${s.target_minutes} min`;
+    ds.state === "done" && ds.log?.actual_minutes
+      ? `${ds.log.actual_minutes} of ${s.target_minutes} min${ds.log.avg_power !== null ? ` · ${ds.log.avg_power} W` : ""}`
+      : `${s.target_minutes} min`;
   return (
     <span className="flex items-center gap-2">
       <Icon aria-hidden size={16} className={`shrink-0 ${cls}`} />

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getAllowedUserId } from "@/lib/auth";
-import { DEFAULT_THRESHOLD } from "@/lib/hr";
-import { DEFAULT_FTP } from "@/lib/power";
-import { DemoScreen } from "./demo-screen";
+import { loadSettings } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/server";
+import { LiveRideScreen } from "../live-ride-screen";
 
 export const metadata: Metadata = { title: "Live zones demo" };
 
@@ -24,12 +24,14 @@ export default function DemoPage() {
 async function Demo() {
   await connection();
   const signedIn = (await getAllowedUserId()) !== null;
-  // Visitors enter their own numbers; the rider's are prefilled.
+  // Visitors enter their own numbers; the rider's come from their settings.
+  const settings = signedIn ? await loadSettings(await createClient()) : null;
   return (
-    <DemoScreen
-      exitHref={signedIn ? "/settings" : "/login"}
-      defaultThreshold={signedIn ? DEFAULT_THRESHOLD : null}
-      defaultFtp={signedIn ? DEFAULT_FTP : null}
+    <LiveRideScreen
+      mode={{ kind: "demo", exitHref: signedIn ? "/settings" : "/login" }}
+      threshold={settings?.threshold_hr ?? null}
+      ftp={settings?.ftp ?? null}
+      allowSimulator
     />
   );
 }

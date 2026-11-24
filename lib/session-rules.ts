@@ -1,6 +1,7 @@
 // Per-session rules used by the Today screen: slot caps, the key-session
 // cutoff, default bike, logging window and HR zones. Pure and unit-tested.
 import { addDays, weekStart, type IsoDate, type Weekday } from "./dates";
+import { DEFAULT_THRESHOLD, zonesFromThreshold } from "./hr";
 import type { PlannedSession } from "./types";
 
 export type SlotUsed = "primary" | "backup" | "other";
@@ -59,13 +60,10 @@ export function canLogDate(date: IsoDate, today: IsoDate): boolean {
   return date <= today && date >= addDays(weekStart(today), -7);
 }
 
-/** Heart rate zone 1-5 (threshold about 172). Gaps in the brief's table close downwards. */
-export function hrZone(hr: number): 1 | 2 | 3 | 4 | 5 {
-  if (hr < 139) return 1;
-  if (hr <= 154) return 2;
-  if (hr <= 161) return 3;
-  if (hr <= 171) return 4;
-  return 5;
+/** Heart rate zone 1-5 for a threshold heart rate (172 gives the plan's original table). */
+export function hrZone(hr: number, threshold: number = DEFAULT_THRESHOLD): 1 | 2 | 3 | 4 | 5 {
+  const z = zonesFromThreshold(threshold);
+  return ([1, 2, 3, 4] as const).find((n) => hr <= z[n][1]) ?? 5;
 }
 
 /** Highest zone allowed by a target like "Z1-2" or "Z3". Null if there isn't one. */

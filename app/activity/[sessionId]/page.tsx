@@ -7,7 +7,7 @@ import { formatShort, hhmm, isoWeekday, weekStart } from "@/lib/dates";
 import { loadSettings, todayFor } from "@/lib/queries";
 import { isWeekLocked } from "@/lib/review";
 import type { PlannedSession } from "@/lib/types";
-import { ActivityScreen } from "./activity-screen";
+import { LiveRideScreen } from "../live-ride-screen";
 
 export const metadata: Metadata = { title: "Activity" };
 
@@ -63,12 +63,17 @@ async function Activity({ params, searchParams }: PageProps<"/activity/[sessionI
   }
 
   return (
-    <ActivityScreen
-      session={session}
-      date={today}
-      dateLabel={formatShort(today)}
-      weekday={isoWeekday(today)}
-      cutoff={hhmm(settings.cutoff_time)}
+    <LiveRideScreen
+      mode={{
+        kind: "planned",
+        session,
+        date: today,
+        dateLabel: formatShort(today),
+        weekday: isoWeekday(today),
+        cutoff: hhmm(settings.cutoff_time),
+      }}
+      threshold={settings.threshold_hr}
+      ftp={settings.ftp}
       allowSimulator={query.sim === "1"}
     />
   );

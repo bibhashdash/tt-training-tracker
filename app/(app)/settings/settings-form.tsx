@@ -49,6 +49,16 @@ export function SettingsForm({ settings: s }: { settings: Settings }) {
       </Card>
 
       <Card className="divide-y divide-zinc-200 py-1 dark:divide-zinc-800">
+        <p className="py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Zones</p>
+        <Field label="Threshold heart rate" hint="bpm. Heart rate zones are worked out from it">
+          <input name="threshold_hr" type="number" min="100" max="220" defaultValue={s.threshold_hr} className={input} />
+        </Field>
+        <Field label="FTP" hint="Watts. Power zones (smart trainer) are worked out from it">
+          <input name="ftp" type="number" min="50" max="600" defaultValue={s.ftp} className={input} />
+        </Field>
+      </Card>
+
+      <Card className="divide-y divide-zinc-200 py-1 dark:divide-zinc-800">
         <p className="py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Sessions</p>
         <Field label="Key session cutoff" hint="Hard sessions must finish by">
           <input name="cutoff_time" type="time" defaultValue={s.cutoff_time.slice(0, 5)} className={`${input} w-32`} />

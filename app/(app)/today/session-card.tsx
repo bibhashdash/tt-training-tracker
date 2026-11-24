@@ -23,6 +23,7 @@ export function SessionCard({
   cutoff,
   locked,
   canStartActivity,
+  threshold,
 }: {
   session: PlannedSession;
   log: SessionLog | null;
@@ -36,6 +37,8 @@ export function SessionCard({
   locked: boolean;
   /** Today, not locked or planned off: the ride can be done live with the HR strap. */
   canStartActivity: boolean;
+  /** Threshold heart rate from Settings, for zone badges. */
+  threshold: number;
 }) {
   const isRide = s.kind === "ride";
   const [modeState, setMode] = useState<"buttons" | SlotUsed | null>(log ? null : "buttons");
@@ -115,14 +118,14 @@ export function SessionCard({
       <div className="mt-3 flex flex-col gap-3">
         {locked ? (
           log ? (
-            <LoggedSummary log={log} zone={s.zone} locked />
+            <LoggedSummary log={log} zone={s.zone} threshold={threshold} locked />
           ) : (
             <p className="text-sm text-zinc-500">{plannedOff ? "Planned off. Not counted." : "Not logged"}</p>
           )
         ) : plannedOff && !log ? (
           <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Planned off. Not counted.</p>
         ) : mode === null && log ? (
-          <LoggedSummary log={log} zone={s.zone} onChange={() => setMode("buttons")} onUndo={clear} />
+          <LoggedSummary log={log} zone={s.zone} threshold={threshold} onChange={() => setMode("buttons")} onUndo={clear} />
         ) : mode === "buttons" ? (
           tooLate && !showLogAnyway && !log ? (
             <div className="flex flex-col gap-2">
@@ -181,6 +184,7 @@ export function SessionCard({
           >
             <p className="text-sm font-medium">{mode === "backup" ? "Done in the backup slot" : "Done"}</p>
             <RideFields
+              threshold={threshold}
               values={values}
               onChange={setValues}
               cap={capFor(s, mode, values.bike)}
@@ -213,15 +217,17 @@ function LoggedSummary({
   onChange,
   onUndo,
   locked = false,
+  threshold,
 }: {
   log: SessionLog;
   zone: string | null;
+  threshold: number;
   onChange?: () => void;
   onUndo?: () => void;
   locked?: boolean;
 }) {
   const ceiling = zoneCeiling(zone);
-  const z = log.avg_hr ? hrZone(log.avg_hr) : null;
+  const z = log.avg_hr ? hrZone(log.avg_hr, threshold) : null;
 
   if (log.status === "dropped") {
     return (
@@ -254,6 +260,8 @@ function LoggedSummary({
               </span>
             </>
           )}
+          {log.avg_power !== null && ` · ${log.avg_power} W`}
+          {log.avg_cadence !== null && ` · ${log.avg_cadence} rpm`}
           {log.bike && ` · ${BIKE_LABEL[log.bike]}`}
           {log.slot_used && SLOT_LABEL[log.slot_used]}
         </span>

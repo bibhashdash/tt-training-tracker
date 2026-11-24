@@ -9,7 +9,7 @@ const s = (id: string, weekday: PlannedSession["weekday"], kind: "ride" | "core"
 
 const log = (id: string | null, date: string, status: SessionLog["status"], minutes: number | null = null): SessionLog => ({
   id: `log-${id}-${date}`, date, planned_session_id: id, status, slot_used: status === "done" ? "primary" : null,
-  actual_minutes: minutes, avg_hr: null, rpe: null, bike: null, notes: null,
+  actual_minutes: minutes, avg_hr: null, rpe: null, bike: null, notes: null, avg_power: null, avg_cadence: null,
 });
 
 const plan: WeekPlan = {

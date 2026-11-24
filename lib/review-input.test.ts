@@ -13,6 +13,8 @@ const settings: Settings = {
   block_start_date: "2026-11-23",
   review_opens_time: "18:00:00",
   planned_off_dates: ["2026-12-25"],
+  ftp: 160,
+  threshold_hr: 172,
 };
 
 const session = (id: string, weekday: PlannedSession["weekday"]): PlannedSession => ({

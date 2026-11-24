@@ -410,3 +410,11 @@ The public demo (`/activity/demo`, `app/activity/demo/demo-screen.tsx`) can also
 - **FTP** entered by the visitor (prefilled 160 when signed in) gives Coggan power zones: Z2 from 56%, Z3 above 75%, Z4 above 90%, Z5 above 105%, Z6 above 120% (`powerZonesFromFtp`). Power is shown as a 3-second average.
 - With both sources on, a **Heart rate / Power** toggle picks what the tuner follows; the other values show as tiles (power, cadence, speed, heart rate).
 - The summary adds average power, average cadence (pedalling only) and time in each power zone. A simulated trainer is available for testing.
+
+### Trainer on real rides, free rides, and zones from Settings
+
+- **One screen for every live ride** (`app/activity/live-ride-screen.tsx`), in three modes: a **planned** ride (`/activity/<session id>`, from the ride card), a **free ride** (`/activity/free`, from the Record ride button on Today), and the public **demo**. All three can use the strap, the trainer, or both, with the Heart rate / Power tuner toggle. Heart rate stays the default: the plan's sessions are written in heart rate zones, and sessions have no power targets.
+- **Settings → Zones:** threshold heart rate (default 172) and FTP (default 160). Heart rate zones everywhere (tuner, zone badges on Today) and power zones come from these. At 172 the heart rate zones are the plan's original table.
+- **Saved with the ride:** `session_logs.avg_power` and `avg_cadence` (migration `20261126000001_power.sql`), only on done rides (DB check). They're only written when sent, so editing a log with the normal Done form never wipes recorded power. Shown on Today's logged card and in Week view. Using the trainer sets the bike to Turbo.
+- **Free ride:** if today still has a planned ride to log, the finish screen offers "Today's ride" (counts toward the week, with slot choice) or "Unplanned ride" (on the record only). Otherwise it's logged as unplanned. Not available in a reviewed (locked) week.
+- **Record ride button:** a floating button on Today (only when viewing today and the week isn't locked) opens a free ride.

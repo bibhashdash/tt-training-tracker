@@ -16,11 +16,13 @@ export function UnplannedRides({
   date,
   weekday,
   locked,
+  threshold,
 }: {
   rides: SessionLog[];
   date: IsoDate;
   weekday: Weekday;
   locked: boolean;
+  threshold: number;
 }) {
   const fresh = (): RideValues => ({ minutes: 30, avgHr: "", bike: defaultBike(weekday), rpe: null, notes: "" });
   const [open, setOpen] = useState(false);
@@ -44,6 +46,7 @@ export function UnplannedRides({
           <p className="text-sm">
             <span className="font-medium">Unplanned ride</span> · {r.actual_minutes} min
             {r.avg_hr && ` · ${r.avg_hr} bpm`}
+            {r.avg_power !== null && ` · ${r.avg_power} W`}
             {r.bike && ` · ${BIKE_LABEL[r.bike]}`}
           </p>
           {!locked && (
@@ -90,7 +93,7 @@ export function UnplannedRides({
                 Logged for the record. It doesn&apos;t replace a dropped session or count toward the week.
               </p>
             </div>
-            <RideFields values={values} onChange={setValues} cap={null} zone={null} />
+            <RideFields values={values} onChange={setValues} cap={null} zone={null} threshold={threshold} />
             <ErrorText>{error}</ErrorText>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setOpen(false)} className={`${btn.base} ${btn.secondary}`}>

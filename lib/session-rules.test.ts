@@ -102,3 +102,13 @@ describe("HR zones", () => {
     expect(zoneCeiling(null)).toBeNull();
   });
 });
+
+describe("hrZone with a threshold from Settings", () => {
+  it("keeps the plan's table at 172 and moves with the threshold", () => {
+    expect(hrZone(150)).toBe(2);
+    expect(hrZone(150, 172)).toBe(2);
+    expect(hrZone(150, 160)).toBe(4); // 160: Z4 is 150-159
+    expect(hrZone(129, 160)).toBe(1);
+    expect(hrZone(165, 160)).toBe(5);
+  });
+});
