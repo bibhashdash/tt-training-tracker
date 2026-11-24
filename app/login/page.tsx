@@ -1,4 +1,6 @@
+import { Activity } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { btn } from "@/components/ui";
 import { signInWithGoogle } from "./actions";
@@ -27,6 +29,23 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           Continue with Google
         </button>
       </form>
+
+      <div className="flex items-center gap-3 text-xs text-zinc-400" aria-hidden>
+        <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        or
+        <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Link href="/activity/demo" className={`${btn.base} ${btn.secondary} w-full gap-2 text-base`}>
+          <Activity aria-hidden size={20} />
+          Try the heart rate demo
+        </Link>
+        <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+          No account needed. Connect a Bluetooth chest strap (Chrome on Android or a computer) or use a simulated
+          heart rate, and see live whether you&apos;re under, in or over your zone. Nothing is saved.
+        </p>
+      </div>
     </main>
   );
 }

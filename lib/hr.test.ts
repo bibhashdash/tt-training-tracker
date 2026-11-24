@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   classify,
+  DEFAULT_THRESHOLD,
+  isValidThreshold,
+  simTargets,
+  zonesFromThreshold,
   gaugePosition,
   gaugeRange,
   parseHeartRate,
@@ -146,5 +150,50 @@ describe("summarize", () => {
 
   it("handles a ride with no readings", () => {
     expect(summarize([], 0, 30_000, zoneBounds("Z2"))).toEqual({ minutes: 1, avgHr: null, inZonePct: null });
+  });
+});
+
+describe("zonesFromThreshold", () => {
+  it("reproduces the plan's zone table at a threshold of 172", () => {
+    expect(zonesFromThreshold(DEFAULT_THRESHOLD)).toEqual({
+      1: [0, 138],
+      2: [139, 154],
+      3: [155, 161],
+      4: [162, 171],
+      5: [172, 250],
+    });
+  });
+
+  it("scales the zones with a different threshold", () => {
+    // 160: Z2 from 130 (81%), Z3 from 144 (90%), Z4 from 150 (94%), Z5 from 160
+    const z = zonesFromThreshold(160);
+    expect(z).toEqual({ 1: [0, 129], 2: [130, 143], 3: [144, 149], 4: [150, 159], 5: [160, 250] });
+    expect(zoneBounds("Z2", z)).toEqual({ low: 130, high: 143, label: "Z2" });
+    expect(zoneBounds("Z1-2", z)).toEqual({ low: null, high: 143, label: "Z1-2" });
+  });
+
+  it("leaves no gaps or overlaps between zones", () => {
+    for (const t of [120, 150, 165, 185, 200]) {
+      const z = zonesFromThreshold(t);
+      for (const n of [1, 2, 3, 4] as const) expect(z[(n + 1) as 2][0]).toBe(z[n][1] + 1);
+    }
+  });
+
+  it("accepts sensible thresholds only", () => {
+    expect(isValidThreshold(172)).toBe(true);
+    expect(isValidThreshold(99)).toBe(false);
+    expect(isValidThreshold(221)).toBe(false);
+    expect(isValidThreshold(170.5)).toBe(false);
+  });
+});
+
+describe("simTargets", () => {
+  it("sits below, inside and above a band", () => {
+    expect(simTargets(zoneBounds("Z2")!)).toEqual({ under: 127, in: 147, over: 162 });
+  });
+
+  it("has nothing below an easy zone, or above Z5", () => {
+    expect(simTargets(zoneBounds("Z1-2")!).under).toBeNull();
+    expect(simTargets(zoneBounds("Z5")!).over).toBeNull();
   });
 });

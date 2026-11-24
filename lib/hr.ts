@@ -2,14 +2,31 @@
 // session's zone, smooth readings, decide when to nudge, and summarise a ride.
 // Pure and unit-tested; the Activity screen wires it to the strap.
 
-/** bpm bounds per zone (threshold about 172). Matches hrZone() in session-rules. */
-export const ZONE_BPM: Record<1 | 2 | 3 | 4 | 5, [number, number]> = {
-  1: [0, 138],
-  2: [139, 154],
-  3: [155, 161],
-  4: [162, 171],
-  5: [172, 250],
-};
+export type ZoneTable = Record<1 | 2 | 3 | 4 | 5, [number, number]>;
+
+/** The rider's threshold heart rate. Their plan's zones are built from it. */
+export const DEFAULT_THRESHOLD = 172;
+export const THRESHOLD_MIN = 100;
+export const THRESHOLD_MAX = 220;
+
+/**
+ * Zones as % of threshold heart rate (Coggan): Z2 from 81%, Z3 from 90%,
+ * Z4 from 94%, Z5 from 100%. Each zone ends 1 bpm below the next one starts.
+ */
+export function zonesFromThreshold(threshold: number): ZoneTable {
+  const z2 = Math.round(threshold * 0.81);
+  const z3 = Math.round(threshold * 0.9);
+  const z4 = Math.round(threshold * 0.94);
+  const z5 = Math.round(threshold);
+  return { 1: [0, z2 - 1], 2: [z2, z3 - 1], 3: [z3, z4 - 1], 4: [z4, z5 - 1], 5: [z5, 250] };
+}
+
+export function isValidThreshold(n: number): boolean {
+  return Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX;
+}
+
+/** bpm bounds per zone at the default threshold. Matches hrZone() in session-rules. */
+export const ZONE_BPM: ZoneTable = zonesFromThreshold(DEFAULT_THRESHOLD);
 
 export interface Reading {
   bpm: number;
@@ -40,16 +57,27 @@ export interface Bounds {
 }
 
 /** "Z1-2" -> no floor, ceiling 154. "Z3" -> 155-161. Null if the zone can't be read. */
-export function zoneBounds(zone: string | null): Bounds | null {
+export function zoneBounds(zone: string | null, zones: ZoneTable = ZONE_BPM): Bounds | null {
   const m = zone?.match(/Z([1-5])(?:-([1-5]))?/i);
   if (!m) return null;
   const from = Number(m[1]) as 1 | 2 | 3 | 4 | 5;
   const to = Number(m[2] ?? m[1]) as 1 | 2 | 3 | 4 | 5;
   if (to < from) return null;
   return {
-    low: from === 1 ? null : ZONE_BPM[from][0],
-    high: to === 5 ? null : ZONE_BPM[to][1],
+    low: from === 1 ? null : zones[from][0],
+    high: to === 5 ? null : zones[to][1],
     label: from === to ? `Z${from}` : `Z${from}-${to}`,
+  };
+}
+
+/** Simulator presets for a band: below it, in the middle of it, and above it. */
+export function simTargets(b: Bounds): { under: number | null; in: number; over: number | null } {
+  const low = b.low ?? (b.high ?? 150) - 35;
+  const high = b.high ?? (b.low ?? 150) + 15;
+  return {
+    under: b.low === null ? null : b.low - 12,
+    in: Math.round((low + high) / 2),
+    over: b.high === null ? null : b.high + 8,
   };
 }
 

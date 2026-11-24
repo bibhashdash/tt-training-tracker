@@ -21,6 +21,17 @@ export async function requireUser() {
   return { supabase, userId: claims.sub };
 }
 
+/**
+ * The signed-in, allowed user's id, or null. Never redirects: for public pages
+ * that only want to adapt (e.g. where a Back link should go).
+ */
+export async function getAllowedUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  return claims?.sub && isAllowedEmail(claims.email) ? claims.sub : null;
+}
+
 /** Only redirect to same-site paths, never to another origin. */
 export function safeNext(next: string | null | undefined, fallback = "/today"): string {
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;

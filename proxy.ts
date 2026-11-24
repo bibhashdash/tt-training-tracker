@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedEmail } from "@/lib/allowed-email";
 import { supabaseKey, supabaseUrl } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+// Reachable without signing in. The heart rate demo loads no user data and saves nothing.
+const PUBLIC_PATHS = ["/login", "/auth", "/activity/demo"];
 
 /**
  * Refreshes the Supabase session cookie on every request and does an optimistic

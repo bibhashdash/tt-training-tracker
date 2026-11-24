@@ -11,11 +11,18 @@ import {
   classify,
   gaugePosition,
   gaugeRange,
+  isValidThreshold,
+  simTargets,
   smoothed,
   stepNudge,
   summarize,
+  THRESHOLD_MAX,
+  THRESHOLD_MIN,
+  ZONE_BPM,
   zoneBounds,
+  zonesFromThreshold,
   type Bounds,
+  type ZoneTable,
   type NudgeState,
   type RideSummary,
   type ZoneStatus,
@@ -41,6 +48,8 @@ export function ActivityScreen({
   cutoff,
   allowSimulator,
   demo = false,
+  exitHref = "/today",
+  defaultThreshold = null,
 }: {
   session: PlannedSession;
   date: IsoDate;
@@ -50,13 +59,23 @@ export function ActivityScreen({
   allowSimulator: boolean;
   /** Practice mode: any zone, simulator available, nothing is saved. */
   demo?: boolean;
+  /** Where Close and Back go (Settings when signed in, the login page when not). */
+  exitHref?: string;
+  /** Demo only: prefilled threshold HR (the rider's own when signed in). Zones are worked out from it. */
+  defaultThreshold?: number | null;
 }) {
   const hr = useHeartRate();
   const [summary, setSummary] = useState<RideSummary | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [targetZone, setTargetZone] = useState(session.zone ?? RECOVERY);
   const [sound, setSound] = useState(false);
+  const [thresholdInput, setThresholdInput] = useState(defaultThreshold ? String(defaultThreshold) : "");
   const nudge = useRef<NudgeState | null>(null);
+
+  // Real rides use the plan's zones; the demo works them out from the threshold entered.
+  const threshold = Number(thresholdInput);
+  const thresholdOk = isValidThreshold(threshold);
+  const zones: ZoneTable = demo && thresholdOk ? zonesFromThreshold(threshold) : ZONE_BPM;
 
   const startedAt = hr.firstAt;
   const active = hr.status === "live" || hr.status === "reconnecting";
@@ -77,7 +96,7 @@ export function ActivityScreen({
     return () => window.removeEventListener("beforeunload", warn);
   }, [startedAt, summary]);
 
-  const bounds = zoneBounds(targetZone);
+  const bounds = zoneBounds(targetZone, zones);
   const bpm = hr.latest ? smoothed(hr.samples.current, now) : null;
   const zoneStatus = bpm !== null && bounds ? classify(bpm, bounds) : null;
 
@@ -92,7 +111,7 @@ export function ActivityScreen({
   const finish = () => {
     const end = Date.now();
     hr.disconnect();
-    setSummary(summarize(hr.samples.current, startedAt ?? end, end, zoneBounds(demo ? targetZone : session.zone)));
+    setSummary(summarize(hr.samples.current, startedAt ?? end, end, zoneBounds(demo ? targetZone : session.zone, zones)));
   };
 
   const elapsed = startedAt === null ? 0 : Math.max(0, Math.floor((now - startedAt) / 1000));
@@ -120,7 +139,7 @@ export function ActivityScreen({
 
   if (summary) {
     return demo ? (
-      <DemoSummary summary={summary} zone={targetZone} />
+      <DemoSummary summary={summary} zone={targetZone} exitHref={exitHref} />
     ) : (
       <FinishForm session={session} date={date} weekday={weekday} summary={summary} />
     );
@@ -144,16 +163,33 @@ export function ActivityScreen({
           </div>
         )}
         {startedAt === null && (
-          <Link href={demo ? "/settings" : "/today"} aria-label="Close" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center">
+          <Link href={exitHref} aria-label="Close" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center">
             <X aria-hidden size={22} />
           </Link>
         )}
       </header>
 
-      {demo && zonePicker}
+      {demo && startedAt === null && hr.status !== "live" && (
+        <ThresholdPanel value={thresholdInput} onChange={setThresholdInput} zones={thresholdOk ? zones : null} />
+      )}
+
+      {demo && thresholdOk && zonePicker}
+      {demo && thresholdOk && (startedAt !== null || hr.status === "live") && (
+        <p className="-mt-2 text-xs text-zinc-500">Zones from a threshold of {threshold} bpm.</p>
+      )}
 
       {startedAt === null && hr.status !== "live" ? (
-        <ConnectPanel hr={hr} allowSimulator={allowSimulator} cutoff={cutoff} isKey={session.is_key} />
+        <ConnectPanel
+          hr={hr}
+          allowSimulator={allowSimulator}
+          cutoff={cutoff}
+          isKey={session.is_key}
+          ready={!demo || thresholdOk}
+          onSimulate={() => {
+            hr.simulate();
+            if (bounds) hr.setSimTarget(simTargets(bounds).in);
+          }}
+        />
       ) : (
         <>
           <Tuner bpm={bpm} bounds={bounds} status={zoneStatus} contact={hr.latest?.contact ?? null} />
@@ -167,11 +203,24 @@ export function ActivityScreen({
 
           <LinkState hr={hr} />
 
-          {allowSimulator && hr.deviceName === "Simulated strap" && (
+          {allowSimulator && hr.deviceName === "Simulated strap" && bounds && (
             <div className="grid grid-cols-3 gap-2">
-              {[110, 145, 165].map((t) => (
-                <button key={t} type="button" onClick={() => hr.setSimTarget(t)} className={`${btn.base} ${btn.secondary}`}>
-                  Sim {t}
+              {(
+                [
+                  ["Sim below", simTargets(bounds).under],
+                  ["Sim in zone", simTargets(bounds).in],
+                  ["Sim above", simTargets(bounds).over],
+                ] as const
+              ).map(([label, target]) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={target === null}
+                  onClick={() => target !== null && hr.setSimTarget(target)}
+                  className={`${btn.base} ${btn.secondary} px-1 text-xs`}
+                >
+                  {label}
+                  {target !== null && ` (${target})`}
                 </button>
               ))}
             </div>
@@ -196,11 +245,16 @@ function ConnectPanel({
   allowSimulator,
   cutoff,
   isKey,
+  ready,
+  onSimulate,
 }: {
   hr: ReturnType<typeof useHeartRate>;
   allowSimulator: boolean;
   cutoff: string;
   isKey: boolean;
+  /** False until the demo has a valid threshold. */
+  ready: boolean;
+  onSimulate: () => void;
 }) {
   return (
     <div className="flex flex-1 flex-col justify-center gap-3">
@@ -208,17 +262,75 @@ function ConnectPanel({
         Put the strap on, wet the contacts, then connect. Keep this screen open while you ride.
         {isKey && ` Key session: finish by ${cutoff}.`}
       </p>
-      <button type="button" onClick={hr.connect} disabled={hr.status === "connecting"} className={`${btn.base} ${btn.primary} h-14 text-base`}>
+      <button
+        type="button"
+        onClick={hr.connect}
+        disabled={!ready || hr.status === "connecting"}
+        className={`${btn.base} ${btn.primary} h-14 text-base`}
+      >
         <Bluetooth aria-hidden size={20} className="mr-2" />
         {hr.status === "connecting" ? "Connecting…" : "Connect heart rate strap"}
       </button>
       {allowSimulator && (
-        <button type="button" onClick={hr.simulate} className={`${btn.base} ${btn.secondary}`}>
+        <button type="button" onClick={onSimulate} disabled={!ready} className={`${btn.base} ${btn.secondary}`}>
           Use simulated heart rate
         </button>
       )}
+      {!ready && <p className="text-center text-sm text-zinc-500">Enter your threshold heart rate above to start.</p>}
       <ErrorText>{hr.error}</ErrorText>
     </div>
+  );
+}
+
+/** Demo: the rider's threshold heart rate, and the zones it gives. */
+function ThresholdPanel({
+  value,
+  onChange,
+  zones,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  zones: ZoneTable | null;
+}) {
+  const rows = zones
+    ? ([1, 2, 3, 4, 5] as const).map((z) => ({
+        zone: `Z${z}`,
+        range: z === 1 ? `<${zones[2][0]}` : z === 5 ? `${zones[5][0]}+` : `${zones[z][0]}–${zones[z][1]}`,
+      }))
+    : [];
+  return (
+    <section className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+      <label className="flex items-center justify-between gap-3">
+        <span className="font-medium">Your threshold heart rate</span>
+        <span className="flex items-center gap-2">
+          <input
+            inputMode="numeric"
+            aria-describedby="threshold-help"
+            placeholder="e.g. 170"
+            value={value}
+            onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 3))}
+            className="h-11 w-24 rounded-lg border border-zinc-300 bg-transparent px-3 text-right text-base dark:border-zinc-700"
+          />
+          <span className="text-sm">bpm</span>
+        </span>
+      </label>
+      <p id="threshold-help" className="text-xs text-zinc-600 dark:text-zinc-400">
+        The highest heart rate you can hold for about an hour. A good estimate: your average over the last 20 minutes
+        of a hard, steady 30-minute solo effort. Not sure? Around 90% of your maximum heart rate is a reasonable start.
+      </p>
+      {zones ? (
+        <dl className="mt-1 grid grid-cols-5 gap-1 text-center">
+          {rows.map((r) => (
+            <div key={r.zone} className="rounded-lg bg-zinc-100 py-1.5 dark:bg-zinc-800">
+              <dt className="text-xs font-semibold">{r.zone}</dt>
+              <dd className="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{r.range}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        value !== "" && <ErrorText>Enter a whole number from {THRESHOLD_MIN} to {THRESHOLD_MAX}.</ErrorText>
+      )}
+    </section>
   );
 }
 
@@ -392,7 +504,7 @@ function SummaryTiles({ summary }: { summary: RideSummary }) {
   );
 }
 
-function DemoSummary({ summary, zone }: { summary: RideSummary; zone: string }) {
+function DemoSummary({ summary, zone, exitHref }: { summary: RideSummary; zone: string; exitHref: string }) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]">
       <h1 className="text-2xl font-semibold">Demo finished</h1>
@@ -402,8 +514,8 @@ function DemoSummary({ summary, zone }: { summary: RideSummary; zone: string }) 
       <button type="button" onClick={() => window.location.reload()} className={`${btn.base} ${btn.primary} mt-auto`}>
         Try again
       </button>
-      <Link href="/settings" className="text-center text-sm text-zinc-600 underline dark:text-zinc-400">
-        Back to Settings
+      <Link href={exitHref} className="text-center text-sm text-zinc-600 underline dark:text-zinc-400">
+        Back
       </Link>
     </main>
   );
