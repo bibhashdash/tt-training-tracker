@@ -1,30 +1,16 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ActivityScreen } from "@/app/activity/[sessionId]/activity-screen";
 import { getAllowedUserId } from "@/lib/auth";
 import { DEFAULT_THRESHOLD } from "@/lib/hr";
-import type { PlannedSession } from "@/lib/types";
+import { DEFAULT_FTP } from "@/lib/power";
+import { DemoScreen } from "./demo-screen";
 
-export const metadata: Metadata = { title: "Heart rate demo" };
-
-/** A stand-in session so the activity screen can run with no plan behind it. */
-const DEMO_SESSION: PlannedSession = {
-  id: "demo",
-  weekday: 1,
-  kind: "ride",
-  target_minutes: 30,
-  max_minutes: null,
-  backup_max_minutes: null,
-  zone: "Z2",
-  is_key: false,
-  primary_slot: "07:00",
-  backup_slot: null,
-  description: null,
-};
+export const metadata: Metadata = { title: "Live zones demo" };
 
 /**
- * Practice the tuner any day: real strap or simulator, any zone, nothing saved.
+ * Practice the live zone screen any day: heart rate strap and/or smart trainer,
+ * real or simulated, nothing saved.
  * Public: open to visitors who aren't signed in (see PUBLIC_PATHS in proxy.ts).
  */
 export default function DemoPage() {
@@ -38,17 +24,12 @@ export default function DemoPage() {
 async function Demo() {
   await connection();
   const signedIn = (await getAllowedUserId()) !== null;
+  // Visitors enter their own numbers; the rider's are prefilled.
   return (
-    <ActivityScreen
-      session={DEMO_SESSION}
-      date="1970-01-01"
-      dateLabel=""
-      weekday={1}
-      cutoff="23:59"
-      allowSimulator
-      demo
+    <DemoScreen
       exitHref={signedIn ? "/settings" : "/login"}
       defaultThreshold={signedIn ? DEFAULT_THRESHOLD : null}
+      defaultFtp={signedIn ? DEFAULT_FTP : null}
     />
   );
 }

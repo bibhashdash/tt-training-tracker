@@ -400,3 +400,13 @@ Settings → Training blocks lists every block and opens an editor for each.
 - **Finish:** minutes (wall clock), time-weighted average HR and % in zone (gaps capped at 5 s) prefill the Done form; saving logs the session like any other and notes the % in zone.
 - **Testing / public demo:** the demo (`/activity/demo`) is open without signing in, linked from the login page ("Try the heart rate demo") and from Settings. Visitors enter their threshold heart rate and zones are worked out from it (Coggan: Z2 from 81%, Z3 90%, Z4 94%, Z5 100%; at 172 this is exactly the plan's table, `zonesFromThreshold` in `lib/hr.ts`); signed in, it is prefilled with 172. Simulator presets (below / in / above) follow the chosen band. It loads no user data and saves nothing; Back goes to Settings when signed in, the login page otherwise. The demo runs the same screen with no session behind it: pick any zone (Z1-2 to Z4, switchable mid-ride), use the strap or a simulated heart rate (Sim 110 / 145 / 165), and nothing is saved. On a real ride, `?sim=1` on the activity URL also enables the simulator.
 - Not stored: the per-second readings (only the summary is saved). No background recording.
+
+### Smart trainer in the demo (read-only)
+
+The public demo (`/activity/demo`, `app/activity/demo/demo-screen.tsx`) can also connect a smart trainer (built for the rider's Tacx Flow Smart), alongside or instead of the strap. The real-ride screen is heart rate only.
+
+- **Read-only.** Nothing is ever written to the trainer; resistance stays with the rider (no ERG mode).
+- **Three formats**, tried in order (`useTrainer`): Fitness Machine Indoor Bike Data (0x1826 / 0x2AD2), Cycling Power Measurement (0x1818 / 0x2A63, cadence worked out from crank revolutions), and Tacx's own FE-C over Bluetooth (service `6e40fec1-…`, ANT+ pages 0x19 power/cadence and 0x10 speed). Decoders are unit-tested in `lib/power.ts`.
+- **FTP** entered by the visitor (prefilled 160 when signed in) gives Coggan power zones: Z2 from 56%, Z3 above 75%, Z4 above 90%, Z5 above 105%, Z6 above 120% (`powerZonesFromFtp`). Power is shown as a 3-second average.
+- With both sources on, a **Heart rate / Power** toggle picks what the tuner follows; the other values show as tiles (power, cadence, speed, heart rate).
+- The summary adds average power, average cadence (pedalling only) and time in each power zone. A simulated trainer is available for testing.

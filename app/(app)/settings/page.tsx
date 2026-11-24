@@ -30,9 +30,9 @@ export default function SettingsPage() {
         className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
       >
         <span>
-          <span className="block font-medium">Heart rate demo</span>
+          <span className="block font-medium">Live zones demo</span>
           <span className="block text-sm text-zinc-600 dark:text-zinc-400">
-            Try the live zone screen with your strap or a simulator. Nothing is saved.
+            Try the live zone screen with your strap, trainer or a simulator. Nothing is saved.
           </span>
         </span>
         <ChevronRight aria-hidden size={20} className="text-zinc-400" />

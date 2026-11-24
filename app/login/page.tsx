@@ -39,11 +39,11 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       <div className="flex flex-col gap-2">
         <Link href="/activity/demo" className={`${btn.base} ${btn.secondary} w-full gap-2 text-base`}>
           <Activity aria-hidden size={20} />
-          Try the heart rate demo
+          Try the live zones demo
         </Link>
         <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
-          No account needed. Connect a Bluetooth chest strap (Chrome on Android or a computer) or use a simulated
-          heart rate, and see live whether you&apos;re under, in or over your zone. Nothing is saved.
+          No account needed. Connect a Bluetooth heart rate strap and/or smart trainer (Chrome on Android or a
+          computer), or use a simulator, and see live whether you&apos;re under, in or over your zone. Nothing is saved.
         </p>
       </div>
     </main>
